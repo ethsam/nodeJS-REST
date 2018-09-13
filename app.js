@@ -2,6 +2,7 @@ const {success, error} = require('functions')
 const bodyParser = require('body-parser')
 const express = require('express')
 const morgan = require('morgan')
+const config = require('./config.json')
 const app = express()
 
 const members = [
@@ -19,12 +20,16 @@ const members = [
     }
 ]
 
+let MembersRouter = express.Router()
+
     app.use(morgan('dev'))
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true}));
 
-        // GET
-        app.get('/api/v1/members/:id', (req, res) => {
+
+    MembersRouter.route('/:id')
+        // GET members with his ID
+        .get((req, res) => {
 
             let index = getIndex(req.params.id)
 
@@ -36,8 +41,8 @@ const members = [
 
         })
 
-        // PUT
-        app.put('/api/v1/members/:id', (req, res) => {
+        // PUT Modify member with his ID
+        .put((req, res) => {
             
             let index = getIndex(req.params.id)
 
@@ -65,8 +70,22 @@ const members = [
 
         })
 
+        // DELETE member with his ID
+        .delete((req, res) => {
+
+            let index = getIndex(req.params.id)
+
+            if (typeof (index) == 'string') {
+                res.json(error(index))
+            } else {
+                members.splice(index, 1)
+                res.json(success(members))
+            }
+        })
+
+    MembersRouter.route('/')
         // GET
-        app.get('/api/v1/members', (req, res) => {
+        .get((req, res) => {
             if (req.query.max != undefined && req.query.max > 0) {
 
                 res.json(success(members.slice(0, req.query.max)))
@@ -84,7 +103,7 @@ const members = [
         })
 
         // POST
-        app.post('/api/v1/members', (req, res) => {
+        .post((req, res) => {
 
             let sameName = false
 
@@ -102,7 +121,7 @@ const members = [
                     res.json(error('name already taken'))
                 } else {
                     let member = {
-                        id: members.length + 1,
+                        id: createID(),
                         name: req.body.name
                     }
 
@@ -118,21 +137,12 @@ const members = [
             }
         })
 
-        app.delete('/api/v1/members/:id', (req, res) => {
-            
-            let index = getIndex(req.params.id)
 
-            if (typeof (index) == 'string') {
-                res.json(error(index))
-            } else {
-                members.splice(index, 1)
-                res.json(success(members))
-            }
-        })
+    app.use( config.rootAPI + 'members', MembersRouter)
 
 // LISTEN
-app.listen(8080, () => {
-    console.log('Started on 8080')
+app.listen(config.port, () => {
+    console.log('Started on ' + config.port)
 })
 
 function getIndex(id) {
@@ -141,4 +151,8 @@ function getIndex(id) {
             return i
     }
     return 'wrong ID'
+}
+
+function createID() {
+    return members[members.length-1].id + 1
 }
