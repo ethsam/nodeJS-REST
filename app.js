@@ -1,17 +1,17 @@
-const {success, error} = require('functions')
+const {success, error} = require('./assets/functions')
 const mysql = require('mysql')
 const bodyParser = require('body-parser')
 const express = require('express')
 const morgan = require('morgan')
-const config = require('./config.json')
+const config = require('./assets/config.json')
 
 // Initialize Connection to MySql database
 var connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'root',
-    database: 'nodeMonPipe',
-    port: 8889
+    host: config.db.host,
+    user: config.db.user,
+    password: config.db.password,
+    database: config.db.database,
+    port: config.db.port
 });
 
 // Connect to DB
@@ -19,12 +19,12 @@ connection.connect(function (err) {
 
     if (err) {
 
-        console.error('error connecting: ' + err.stack);
+        console.error('error connecting : ' + err.stack);
         return;
 
     } else {
 
-            console.log('connected as id ' + connection.threadId);
+            console.log('connected as id : ' + connection.threadId);
             const app = express()
 
             let MembersRouter = express.Router()
@@ -40,41 +40,60 @@ connection.connect(function (err) {
                 // GET members with his ID
                 .get((req, res) => {
 
-                    let index = getIndex(req.params.id)
-
-                    if (typeof (index) == 'string') {
-                        res.json(error(index))
-                    } else {
-                        res.json(success(members[index]))
-                    }
+                    connection.query('SELECT * FROM members WHERE id = ?', [req.params.id], (err, result) => {
+                        if (err) {
+                            res.json(error(err.message))
+                        } else {
+                            if (result[0] != undefined) {
+                                res.json(success(result[0]))
+                            } else {
+                                res.json(error('wrong id'))
+                            }
+                        }
+                    })
 
                 })
 
                 // PUT Modify member with his ID
                 .put((req, res) => {
 
-                    let index = getIndex(req.params.id)
 
-                    if (typeof (index) == 'string') {
-                        res.json(error(index))
+                    if (req.body.name) {
+
+                        connection.query('SELECT * FROM members WHERE id = ?', [req.params.id], (err, result) => {
+                            if (err) {
+                                res.json(error(err.message))
+                            } else {
+                                if (result[0] != undefined) {
+                                    
+                                    connection.query('SELECT * FROM members WHERE name = ? AND id != ?', [req.body.name, req.params.id], (err, result) => {
+                                        if (err) {
+                                            res.json(error(err.message))
+                                        } else {
+
+                                            if (result[0] != undefined) {
+                                                res.json(error('same name'))
+                                            } else {
+                                                connection.query('UPDATE members SET name = ? WHERE id = ?', [req.body.name, req.params.id], (err, result) => {
+                                                    if (err) {
+                                                        res.json(error(err.message))
+                                                    } else {
+                                                        res.json(success(true))
+                                                    }
+                                                })
+                                            }
+
+                                        }
+                                    })
+
+                                } else {
+                                    res.json(error('wrong id'))
+                                }
+                            }
+                        })
 
                     } else {
-
-                        let same = false
-
-                        for (let i = 0; i < members.length; i++) {
-                            if (req.body.name == members[i].name && req.params.id != members[i].id) {
-                                same = true
-                                break
-                            }
-                        }
-
-                        if (same) {
-                            res.json(error('same name'))
-                        } else {
-                            members[index].name = req.body.name
-                            res.json(success(true))
-                        }
+                        res.json(error('no name value'))
                     }
 
                 })
@@ -82,14 +101,26 @@ connection.connect(function (err) {
                 // DELETE member with his ID
                 .delete((req, res) => {
 
-                    let index = getIndex(req.params.id)
+                    connection.query('SELECT * FROM members WHERE id = ?', [req.params.id], (err, result) => {
+                        if (err) {
+                            res.json(error(err.message))
+                        } else {
+                            if (result[0] != undefined) {
 
-                    if (typeof (index) == 'string') {
-                        res.json(error(index))
-                    } else {
-                        members.splice(index, 1)
-                        res.json(success(members))
-                    }
+                                connection.query('DELETE FROM members WHERE id = ?', [req.params.id], (err, result => {
+                                    if (err) {
+                                        res.json(error(err.message))
+                                    } else {
+                                        res.json(success(true))
+                                    }
+                                }))
+
+                            } else {
+                                res.json(error('wrong id'))
+                            }
+                        }
+                    })
+
                 })
 
             MembersRouter.route('/')
@@ -126,30 +157,38 @@ connection.connect(function (err) {
                 // POST
                 .post((req, res) => {
 
-                    let sameName = false
-
-
                     if (req.body.name) {
 
-                        for (let i = 0; i < members.length; i++) {
-                            if (members[i].name == req.body.name) {
-                                sameName = true
-                                break
-                            }
-                        }
+                        connection.query('SELECT * FROM members WHERE name = ?', [req.body.name], (err, result) => {
+                            if (err) { //first if
+                                res.json(error(err.message))
+                            } else {
 
-                        if (sameName) {
-                            res.json(error('name already taken'))
-                        } else {
-                            let member = {
-                                id: createID(),
-                                name: req.body.name
-                            }
+                                if (result[0] != undefined) { //second if
+                                    res.json(error('name already taken'))
+                                } else {
+                                    connection.query('INSERT INTO members(name) VALUES(?)', [req.body.name], (err, result) => {
+                                        if (err) { //third if
+                                            res.json(error(err.message))
+                                        } else {
+                                            connection.query('SELECT * FROM members WHERE name = ?', [req.body.name], (err, result) => {
 
-                            members.push(member)
+                                                if (err) { //first if
+                                                    res.json(error(err.message))
+                                                } else {
+                                                     res.json(success({
+                                                         id: result[0].id,
+                                                         name: result[0].name
+                                                     }))
+                                                }
 
-                            res.json(success(member))
-                        }
+                                            })
+                                        } // third if
+                                    })
+                                } //second if
+
+                            } //first if
+                        })
 
                     } else {
 
@@ -168,17 +207,3 @@ connection.connect(function (err) {
 
         }
     });
-
-
-
-function getIndex(id) {
-    for (let i = 0; i < members.length; i++) {
-        if (members[i].id == id)
-            return i
-    }
-    return 'wrong ID'
-}
-
-function createID() {
-    return members[members.length-1].id + 1
-}
