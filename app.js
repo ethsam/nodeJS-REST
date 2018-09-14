@@ -28,7 +28,7 @@ app.use(bodyParser.urlencoded({
 
 
 MembersRouter.route('/:id')
-    //GET members with his ID
+    //GET members with his ID  -- CRUD OK --
     .get(async(req, res) => {
         let member = await Members.getByID(req.params.id)
         res.json(checkAndChange(member))
@@ -104,7 +104,7 @@ MembersRouter.route('/:id')
     })
 
 MembersRouter.route('/')
-    // GET ALL Members
+    // GET ALL Members   -- CRUD OK --
     .get(async(req, res) => {
         let allMembers = await Members.getAll(req.query.max)
         res.json(checkAndChange(allMembers))
