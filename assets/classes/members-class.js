@@ -46,5 +46,40 @@ let Members = class {
 
     }
 
-    
+    static add(name) {
+
+        return new Promise((next) => {
+
+                if (name != undefined && name.trim() != '') {
+
+                    name= name.trim()
+
+                    connection.query('SELECT * FROM members WHERE name = ?', [name])
+                    .then((result) => {
+
+                         if (result[0] != undefined) { //second if
+                            next(new Error('name already taken'))
+                         } else {
+                            return connection.query('INSERT INTO members(name) VALUES(?)', [name])
+                         } //second if
+
+                    })
+                    .then(() => {
+                        return connection.query('SELECT * FROM members WHERE name = ?', [name])
+
+                                })
+                    .then((result) => {
+                        next({
+                            id: result[0].id,
+                            name: result[0].name
+                        })
+                    })
+                    .catch((err) => next(err))
+
+                } else {
+                    next(new Error('no name value'))
+                }
+            })
+    }
+
 }

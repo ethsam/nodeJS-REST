@@ -110,47 +110,10 @@ MembersRouter.route('/')
         res.json(checkAndChange(allMembers))
     })
 
-    // POST
-    .post((req, res) => {
-
-        if (req.body.name) {
-
-            connection.query('SELECT * FROM members WHERE name = ?', [req.body.name], (err, result) => {
-                if (err) { //first if
-                    res.json(error(err.message))
-                } else {
-
-                    if (result[0] != undefined) { //second if
-                        res.json(error('name already taken'))
-                    } else {
-                        connection.query('INSERT INTO members(name) VALUES(?)', [req.body.name], (err, result) => {
-                            if (err) { //third if
-                                res.json(error(err.message))
-                            } else {
-                                connection.query('SELECT * FROM members WHERE name = ?', [req.body.name], (err, result) => {
-
-                                    if (err) { //first if
-                                        res.json(error(err.message))
-                                    } else {
-                                        res.json(success({
-                                            id: result[0].id,
-                                            name: result[0].name
-                                        }))
-                                    }
-
-                                })
-                            } // third if
-                        })
-                    } //second if
-
-                } //first if
-            })
-
-        } else {
-
-            res.json(error('no name value'))
-
-        }
+    // POST  -- CRUD OK --
+    .post(async(req, res) => {
+        let addMember = await Members.add(req.body.name)
+        res.json(checkAndChange(addMember))
     })
 
 
@@ -163,6 +126,6 @@ app.listen(config.port, () => {
 
 
 }).catch((err) => {
-    console.log('Erreur during database connection')
+    console.log('Error during database connection')
     console.log(err.message)
 })
