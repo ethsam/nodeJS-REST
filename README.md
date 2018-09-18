@@ -12,14 +12,14 @@ Just :
 - unzip
 
 - Installation with NodeJS
-  ```NodeJS
-  npm install
-  ```
+    ```NodeJS
+    npm install
+    ```
 
 - Launch with :
-```NodeJS
-npm run start
-```
+    ```NodeJS
+    npm run start
+    ```
 
 ### Development
 
