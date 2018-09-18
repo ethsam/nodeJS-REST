@@ -7,5 +7,12 @@
         "password": "root",
         "database": "nodeMonPipe",
         "port": 8889
+    },
+    "errors" : {
+        "wrongID" : "Wrong id",
+        "wrongMaxValue" : "wrong max value",
+        "nameAlreadyTaken" : "name already taken",
+        "noNameValue" : "no name value",
+        "sameName" : "same name"
     }
 }
